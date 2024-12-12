@@ -202,6 +202,8 @@ struct terminal_tag {
     int far2l_ext; // extensions mode on
     bool is_apc; // currently processing APC sequence
     int clip_allowed; // remote clipboard access is allowed
+    DWORD prev_uchar;
+    HWND notif_hwnd;
 #endif
 
     char id_string[1024];

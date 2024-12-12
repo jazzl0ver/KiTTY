@@ -5724,11 +5724,24 @@ if( (GetKeyState(VK_MENU)&0x8000) && (wParam==VK_SPACE) ) {
         //int result = ToUnicode(wParam, MapVirtualKey(wParam, MAPVK_VK_TO_VSC), kb, uc, 4, 0);
         uchar = uc[0];
 
+        bool intl_uchar = uchar > 0x7F && uchar <= 0x10FFFF && !(uchar >= 0x80 && uchar <= 0x9F);
+
         // set event type
         if ((message == WM_KEYDOWN) || (message == WM_SYSKEYDOWN)) {
+
             type = 'K';
+
+            term->prev_uchar = uchar;
+
         } else {
+
             type = 'k';
+
+            // workaround for https://bugs.winehq.org/show_bug.cgi?id=57513
+            if (intl_uchar && (term->prev_uchar != uchar)) {
+                type = 'K';
+                term->prev_uchar = 0;
+            }
         }
 
         char* kev = malloc(15); // keyboard event structure length
