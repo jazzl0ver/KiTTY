@@ -104,7 +104,7 @@ RC = $(TOOLPATH)windres
 
 # CFLAGS = -Wall -O2 -std=gnu99 -Wvla -D_WINDOWS -DWIN32S_COMPAT \
 
-CFLAGS = -Wall -O2 -std=gnu99 -Wvla -D_WINDOWS -DWIN32S_COMPAT \
+CFLAGS = -Wall -O2 -std=gnu99 -Wvla -D_WINDOWS -DWIN32S_COMPAT -fcommon \
 		-D_NO_OLDNAMES -D__USE_MINGW_ANSI_STDIO=1 -I.././ \
 		-I../charset/ -I../windows/ -I../unix/ -I../crypto/ -I../proxy/ -I../ssh/ -I../terminal/ -I../utils/
 LDFLAGS = -s
