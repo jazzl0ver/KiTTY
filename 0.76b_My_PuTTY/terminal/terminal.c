@@ -1374,6 +1374,8 @@ static void power_on(Terminal *term, bool clear)
     term->alt_t = term->marg_t = 0;
 #ifdef MOD_FAR2L
     term->far2l_ext = 0;
+    term->prev_uchar = 0;
+    term->notif_hwnd = 0;
 #endif
     if (term->rows != -1)
 	term->alt_b = term->marg_b = term->rows - 1;
@@ -2188,6 +2190,8 @@ void term_free(Terminal *term)
 
     sfree(term->window_title);
     sfree(term->icon_title);
+
+    if (term->notif_hwnd) DestroyWindow(term->notif_hwnd);
 
     sfree(term);
 }
@@ -3324,54 +3328,132 @@ static void do_osc(Terminal *term)
 
                     case 'n':; // FARTTY_INTERRACT_DESKTOP_NOTIFICATION
 
-                        /* // not ready yet
-                        // todo: generate some reply
-                        // todo: show notification only if window is out of focus
-                        // todo: remove icon after notification timeout or by mouse click
-                        // title length, source, utf8, no zero-terminate, bytes
-                        DWORD len1;
-                        memcpy(&len1, d_out+d_count-6, sizeof(len1));
-                        // text length, source, utf8, no zero-terminate, bytes
-                        DWORD len2;
-                        memcpy(&len2, d_out+d_count-6-4-len1, sizeof(len2));
-                        // destination (wide char)
-                        LPWSTR text_wc, title_wc;
-                        int textsz_wc, titlesz_wc;
-                        // notification may contain file names in non-latin
-                        // or may have localized title
-                        // so we can not assume ascii here and should do
-                        // full utf8->multibyte conversion
-                        titlesz_wc = MultiByteToWideChar(CP_UTF8, 0, (LPCCH)(d_out+len2+4), len1, 0, 0);
-                        textsz_wc = MultiByteToWideChar(CP_UTF8, 0, (LPCCH)d_out, len2, 0, 0);
-                        if (titlesz_wc && textsz_wc) {
-                            title_wc = malloc((titlesz_wc+1)*sizeof(wchar_t));
-                            MultiByteToWideChar(CP_UTF8, 0, (LPCCH)(d_out+len2+4), len1, title_wc, titlesz_wc);
-                            text_wc = malloc((textsz_wc+1)*sizeof(wchar_t));
-                            MultiByteToWideChar(CP_UTF8, 0, (LPCCH)d_out, len2, text_wc, textsz_wc);
-                            title_wc[titlesz_wc] = 0;
-                            text_wc[textsz_wc] = 0;
-                            NOTIFYICONDATAW pnid;
-                            // todo: do this on window focus also
-                            pnid.cbSize = sizeof(pnid);
-                            pnid.hWnd = NULL;
-                            pnid.hIcon = LoadIcon(0, IDI_APPLICATION);
-                            pnid.uID = 200;
-                            Shell_NotifyIconW(NIM_DELETE, &pnid);
-                            // todo: use putty icon
-                            pnid.cbSize = sizeof(pnid);
-                            pnid.hWnd = NULL;
-                            pnid.hIcon = LoadIcon(0, IDI_APPLICATION);
-                            pnid.uID = 200;
-                            pnid.uFlags = NIF_ICON | NIF_INFO | NIF_MESSAGE;
-                            pnid.uCallbackMessage = (WM_USER + 200);
-                            pnid.dwInfoFlags = NIIF_INFO | NIIF_NOSOUND;
-                            memcpy(pnid.szInfoTitle, title_wc, (titlesz_wc+1)*sizeof(wchar_t));
-                            memcpy(pnid.szInfo, text_wc, (textsz_wc+1)*sizeof(wchar_t));
-                            Shell_NotifyIconW(NIM_ADD, &pnid);
-                            free(text_wc);
-                            free(title_wc);
+                        // zero reply
+                        reply_size = 5;
+                        reply = malloc(reply_size);
+                        memcpy(reply, &zero, sizeof(DWORD));
+
+                        if (term && !term->has_focus) {
+
+                            // todo: remove icon after notification timeout or by mouse click
+
+                            // title length, source, utf8, no zero-terminate, bytes
+                            DWORD len1;
+                            memcpy(&len1, d_out+d_count-6, sizeof(len1));
+
+                            // text length, source, utf8, no zero-terminate, bytes
+                            DWORD len2;
+                            memcpy(&len2, d_out+d_count-6-4-len1, sizeof(len2));
+
+                            // notification may contain file names in non-latin
+                            // or may have localized title
+                            // so we can not assume ascii here and should do
+                            // full utf8->multibyte conversion
+
+                            LPWSTR title_wc = NULL, text_wc = NULL;
+
+                            int titlesz_wc = MultiByteToWideChar(CP_UTF8, 0, (LPCCH)(d_out + len2 + 4), len1, NULL, 0);
+                            if (titlesz_wc) {
+                                title_wc = (LPWSTR)calloc(titlesz_wc + 1, sizeof(wchar_t));
+                                if (title_wc) {
+                                    if (!MultiByteToWideChar(CP_UTF8, 0, (LPCCH)(d_out + len2 + 4), len1, title_wc, titlesz_wc)) {
+                                        DWORD error = GetLastError();
+                                        wchar_t error_msg[256];
+                                        swprintf(error_msg, ARRAYSIZE(error_msg), L"Failed to convert title. Error code: %lu", error);
+                                        MessageBoxW(NULL, error_msg, L"Error", MB_OK);
+                                        if (title_wc) free(title_wc); title_wc = NULL;
+                                        break;
+                                    }
+                                } else {
+                                    DWORD error = GetLastError();
+                                    wchar_t error_msg[256];
+                                    swprintf(error_msg, ARRAYSIZE(error_msg), L"Failed to allocate memory for title. Error code: %lu", error);
+                                    MessageBoxW(NULL, error_msg, L"Error", MB_OK);
+                                    break;
+                                }
+                            } else {
+                                DWORD error = GetLastError();
+                                wchar_t error_msg[256];
+                                swprintf(error_msg, ARRAYSIZE(error_msg), L"Failed to get title size. Error code: %lu", error);
+                                MessageBoxW(NULL, error_msg, L"Error", MB_OK);
+                                break;
+                            }
+
+                            if (title_wc) {
+                                int textsz_wc = MultiByteToWideChar(CP_UTF8, 0, (LPCCH)d_out, len2, NULL, 0);
+                                if (textsz_wc) {
+                                    text_wc = (LPWSTR)calloc(textsz_wc + 1, sizeof(wchar_t));
+                                    if (text_wc) {
+                                        if (!MultiByteToWideChar(CP_UTF8, 0, (LPCCH)d_out, len2, text_wc, textsz_wc)) {
+                                            DWORD error = GetLastError();
+                                            wchar_t error_msg[256];
+                                            swprintf(error_msg, ARRAYSIZE(error_msg), L"Failed to convert text. Error code: %lu", error);
+                                            MessageBoxW(NULL, error_msg, L"Error", MB_OK);
+                                            if (title_wc) free(title_wc); title_wc = NULL;
+                                            if (text_wc) free(text_wc); text_wc = NULL;
+                                            break;
+                                        }
+                                    } else {
+                                        DWORD error = GetLastError();
+                                        wchar_t error_msg[256];
+                                        swprintf(error_msg, ARRAYSIZE(error_msg), L"Failed to allocate memory for text. Error code: %lu", error);
+                                        MessageBoxW(NULL, error_msg, L"Error", MB_OK);
+                                        if (title_wc) free(title_wc); title_wc = NULL;
+                                        break;
+                                    }
+                                } else {
+                                    DWORD error = GetLastError();
+                                    wchar_t error_msg[256];
+                                    swprintf(error_msg, ARRAYSIZE(error_msg), L"Failed to get text size. Error code: %lu", error);
+                                    MessageBoxW(NULL, error_msg, L"Error", MB_OK);
+                                    if (title_wc) free(title_wc); title_wc = NULL;
+                                    break;
+                                }
+                            }
+
+                            if (title_wc && text_wc) {
+
+                                NOTIFYICONDATAW pnid = {0};
+                                pnid.cbSize = sizeof(NOTIFYICONDATAW);
+
+                                pnid.uID = WM_USER + 200;
+                                if (!term->notif_hwnd) {
+                                    term->notif_hwnd = CreateWindowExW(0, L"static", L"", 0, 0, 0, 0, 0, 0, 0, 0, 0);
+                                }
+                                pnid.hWnd = term->notif_hwnd;
+                                Shell_NotifyIconW(NIM_DELETE, &pnid); // Ignore errors from deletion
+
+
+                                pnid.uTimeout = 5000;
+                                pnid.uFlags = NIF_ICON | NIF_INFO;
+                                pnid.dwInfoFlags = NIIF_INFO | NIIF_NOSOUND;
+
+                                pnid.hIcon = LoadIcon(NULL, IDI_INFORMATION);
+                                if (pnid.hIcon == NULL) {
+                                    DWORD error = GetLastError();
+                                    wchar_t error_msg[256];
+                                    swprintf(error_msg, ARRAYSIZE(error_msg), L"Failed to load icon. Error code: %lu", error);
+                                    MessageBoxW(NULL, error_msg, L"Error", MB_OK);
+                                    if (title_wc) free(title_wc); title_wc = NULL;
+                                    if (text_wc) free(text_wc); text_wc = NULL;
+                                    break;
+                                }
+
+                                wcsncpy_s(pnid.szInfoTitle, ARRAYSIZE(pnid.szInfoTitle), title_wc, _TRUNCATE);
+                                wcsncpy_s(pnid.szInfo, ARRAYSIZE(pnid.szInfo), text_wc, _TRUNCATE);
+
+                                if (!Shell_NotifyIconW(NIM_ADD, &pnid)) {
+                                    DWORD error = GetLastError();
+                                    wchar_t error_msg[256];
+                                    swprintf(error_msg, ARRAYSIZE(error_msg), L"Failed to add notification icon. Error code: %lu", error);
+                                    MessageBoxW(NULL, error_msg, L"Error", MB_OK);
+                                }
+
+                            }
+
+                            if (title_wc) free(title_wc); title_wc = NULL;
+                            if (text_wc) free(text_wc); text_wc = NULL;
                         }
-                        */
 
                         break;
 

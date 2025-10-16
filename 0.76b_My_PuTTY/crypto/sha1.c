@@ -4,6 +4,10 @@
  *   http://csrc.nist.gov/cryptval/shs.html
  */
 
+#if defined(__i386__) 
+#define _FORCE_SOFTWARE_SHA=1
+#endif
+
 #include "ssh.h"
 #include <assert.h>
 
@@ -344,7 +348,9 @@ const ssh_hashalg ssh_sha1_sw = {
 
 #include <wmmintrin.h>
 #include <smmintrin.h>
+#if !defined(_FORCE_SOFTWARE_SHA)
 #include <immintrin.h>
+#endif
 #if defined(__clang__) || defined(__GNUC__)
 #include <shaintrin.h>
 #endif
