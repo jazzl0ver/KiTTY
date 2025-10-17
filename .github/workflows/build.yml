@@ -1,4 +1,4 @@
-name: Build KiTTY Portable (Win32/Win64)
+name: Build KiTTY
 
 on:
   push:
@@ -31,7 +31,7 @@ jobs:
             perl
             mingw-w64-${{ matrix.arch }}-toolchain
 
-      - name: Build KiTTY Portable (${{ matrix.arch }})
+      - name: Build KiTTY (${{ matrix.arch }})
         shell: msys2 {0}
         run: |
           set -eux
@@ -45,5 +45,5 @@ jobs:
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: KiTTY-Portable-${{ matrix.arch }}
+          name: KiTTY-${{ matrix.arch }}
           path: out/${{ matrix.arch }}/
