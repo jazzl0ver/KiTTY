@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        arch: [i686, x86_64]
+        arch: [x86_64]
 
     steps:
       - name: Checkout repository
@@ -38,7 +38,7 @@ jobs:
           cd 0.76_My_PuTTY/windows
           # Если makefile требует генерации:
           # perl ../mkfiles.pl
-          make -f MAKEFILE.MINGW -j$(nproc) kitty_portable.exe
+          make -f MAKEFILE.MINGW -j$(nproc)
           mkdir -p ../../out/${{ matrix.arch }}
           cp -f *.exe ../../out/${{ matrix.arch }}/ || true
 
