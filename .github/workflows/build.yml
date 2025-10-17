@@ -1,0 +1,49 @@
+name: Build KiTTY Portable (Win32/Win64)
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [i686, x86_64]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup MSYS2 with MinGW toolchain
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            git
+            make
+            perl
+            mingw-w64-${{ matrix.arch }}-toolchain
+
+      - name: Build KiTTY Portable (${{ matrix.arch }})
+        shell: msys2 {0}
+        run: |
+          set -eux
+          cd 0.76_My_PuTTY/windows
+          # Если makefile требует генерации:
+          # perl ../mkfiles.pl
+          make -f MAKEFILE.MINGW -j$(nproc) kitty_portable.exe
+          mkdir -p ../../out/${{ matrix.arch }}
+          cp -f *.exe ../../out/${{ matrix.arch }}/ || true
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: KiTTY-Portable-${{ matrix.arch }}
+          path: out/${{ matrix.arch }}/
