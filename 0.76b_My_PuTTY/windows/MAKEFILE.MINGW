@@ -832,11 +832,11 @@ nogss.o: ../nogss.c ../putty.h ../defs.h ../puttyps.h ../network.h ../misc.h \
 		../windows/help.h ../charset/charset.h
 	$(CC) $(COMPAT) $(CFLAGS) $(XFLAGS) -c ../nogss.c
 
-norand.o: ../norand.c ../putty.h ../defs.h ../puttyps.h ../network.h \
+norand.o: ../stubs/norand.c ../putty.h ../defs.h ../puttyps.h ../network.h \
 		../misc.h ../marshal.h ../ssh/signal-list.h ../windows/platform.h \
 		../unix/unix.h ../puttymem.h ../tree234.h \
 		../windows/help.h ../charset/charset.h
-	$(CC) $(COMPAT) $(CFLAGS) $(XFLAGS) -c ../norand.c
+	$(CC) $(COMPAT) $(CFLAGS) $(XFLAGS) -c ../stubs/norand.c
 
 noterm.o: ../stubs/noterm.c ../putty.h ../terminal/terminal.h ../defs.h ../puttyps.h \
 		../network.h ../misc.h ../marshal.h ../ssh/signal-list.h \
