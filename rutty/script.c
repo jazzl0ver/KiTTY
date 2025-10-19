@@ -333,7 +333,7 @@ void script_sendchar(void *ctx, long now)
 
 /* called by timer after wait for prompt timeout
 */
-void script_timeout(void *ctx, long now)
+void script_timeout(void *ctx, unsigned long now)
 {
     ScriptData * scriptdata = (ScriptData *) ctx;
 
