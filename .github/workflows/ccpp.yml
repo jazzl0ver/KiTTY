@@ -24,7 +24,7 @@ jobs:
     steps:
     
     # Checkout
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     
     # Build
     - name: build
@@ -36,7 +36,7 @@ jobs:
     # Upload runner package tar.gz/zip as artifact
     - name: Publish Artifact
       if: github.event_name != 'pull_request'
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v4
       with:
         name: kitty
         path: builds/
@@ -48,7 +48,7 @@ jobs:
     steps:
     
     # Checkout
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     
     # Build
     - name: build
@@ -60,7 +60,7 @@ jobs:
     # Upload runner package tar.gz/zip as artifact
     - name: Publish Artifact
       if: github.event_name != 'pull_request'
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v4
       with:
         name: kitty64
         path: builds/
