@@ -35,7 +35,7 @@ jobs:
         shell: msys2 {0}
         run: |
           set -eux
-          cd 0.76_My_PuTTY/windows
+          cd 0.76b_My_PuTTY/windows
           # Если makefile требует генерации:
           # perl ../mkfiles.pl
           make -f MAKEFILE.MINGW -j$(nproc)
