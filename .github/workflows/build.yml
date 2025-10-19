@@ -38,7 +38,7 @@ jobs:
           cd 0.76b_My_PuTTY/windows
           # Если makefile требует генерации:
           # perl ../mkfiles.pl
-          make -f MAKEFILE.MINGW -j$(nproc)
+          make -f MAKEFILE.MINGW -j$(nproc) MOD_ADB=
           mkdir -p ../../out/${{ matrix.arch }}
           cp -f *.exe ../../out/${{ matrix.arch }}/ || true
 
