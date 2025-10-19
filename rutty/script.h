@@ -73,8 +73,8 @@ int script_cond_chk(char *ref, int rc, char *data, int dc);
 void script_cond_set(char * cond, int *p, char *in, int sz);
 int script_chkline(ScriptData * scriptdata);
 void script_timeout(void *ctx, unsigned long now);
-void script_sendline(void *ctx, long now);
-void script_sendchar(void *ctx, long now);
+void script_sendline(void *ctx, unsigned long now);
+void script_sendchar(void *ctx, unsigned long now);
 void script_getline(ScriptData * scriptdata);
 
 
